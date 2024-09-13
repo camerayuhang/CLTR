@@ -25,14 +25,14 @@ val_list = f.readlines()
 '''for training set'''
 for i in range(len(train_list)):
     fname = train_list[i].split(' ')[0] + '.jpg'
-    img_path = args.data_path + '/images_2048/' + fname # using 2048 for training
+    img_path = args.data_path + '/images_2048/' + fname  # using 2048 for training
 
     img = cv2.imread(img_path)
     Img_data_pil = Image.open(img_path).convert('RGB')
 
     k = np.zeros((img.shape[0], img.shape[1]))
-    point_map =  np.zeros((img.shape[0], img.shape[1], 3))+255
-    mat_path = img_path.replace('images', 'gt_npydata').replace('jpg', 'npy')
+    point_map = np.zeros((img.shape[0], img.shape[1], 3)) + 255
+    mat_path = img_path.replace('images', 'gt_npydata').replace('jpg', 'npy')  # mat_path is gt_npydata_2048
 
     with open(mat_path, 'rb') as outfile:
         gt = np.load(outfile).tolist()
@@ -50,18 +50,17 @@ for i in range(len(train_list)):
         hf['image'] = Img_data_pil
     print("training_part", img_path)
 
-    #point_map = point_map + img
+    # point_map = point_map + img
 
 
 '''for val set'''
 for i in range(len(val_list)):
     fname = val_list[i].split(' ')[0] + '.jpg'
-    img_path = args.data_path + '/images/' + fname #using 4096 for testing
+    img_path = args.data_path + '/images/' + fname  # using 4096 for testing
 
     img = cv2.imread(img_path)
     image_s = cv2.imread(img_path.replace('images', 'images_2048'))
     Img_data_pil = Image.open(img_path).convert('RGB')
-
 
     if img.shape[1] >= img.shape[0] and img.shape[1] >= 4096:
         rate1 = 4096.0 / img.shape[1]
@@ -93,4 +92,3 @@ for i in range(len(val_list)):
         hf['image'] = Img_data_pil
 
     print("val part", img_path)
-

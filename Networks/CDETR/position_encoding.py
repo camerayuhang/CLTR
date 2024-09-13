@@ -86,13 +86,14 @@ class PositionEmbeddingLearned(nn.Module):
         return pos
 
 
+# The position embedding is a technique often used in transformer models to add information about the position of elements
 def build_position_encoding(args):
     N_steps = args.hidden_dim // 2
     if args.position_embedding in ('v2', 'sine'):
         # TODO find a better way of exposing other arguments
-        position_embedding = PositionEmbeddingSine(N_steps, normalize=True)
+        position_embedding = PositionEmbeddingSine(N_steps, normalize=True)  # fixed position embedding
     elif args.position_embedding in ('v3', 'learned'):
-        position_embedding = PositionEmbeddingLearned(N_steps)
+        position_embedding = PositionEmbeddingLearned(N_steps)  # learned position embedding
     else:
         raise ValueError(f"not supported {args.position_embedding}")
 

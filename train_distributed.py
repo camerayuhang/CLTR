@@ -1,4 +1,19 @@
 from __future__ import division
+from torch.utils.tensorboard import SummaryWriter  # add tensoorboard
+import numpy as np
+import torch
+import torch.distributed as dist
+from torch.utils.data.distributed import DistributedSampler
+from utils import save_checkpoint
+import util.misc as utils
+import time
+from nni.utils import merge_parameter
+import nni
+from utils import get_root_logger, setup_seed
+import math
+import dataset
+from torchvision import transforms
+import torch.nn as nn
 
 import os
 import warnings
@@ -6,21 +21,6 @@ import warnings
 from config import return_args, args
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
-import torch.nn as nn
-from torchvision import transforms
-import dataset
-import math
-from utils import get_root_logger, setup_seed
-import nni
-from nni.utils import merge_parameter
-import time
-import util.misc as utils
-from utils import save_checkpoint
-from torch.utils.data.distributed import DistributedSampler
-import torch.distributed as dist
-import torch
-import numpy as np
-from torch.utils.tensorboard import SummaryWriter  # add tensoorboard
 
 if args.backbone == 'resnet50' or args.backbone == 'resnet101':
     from Networks.CDETR import build_model
@@ -28,6 +28,7 @@ if args.backbone == 'resnet50' or args.backbone == 'resnet101':
 warnings.filterwarnings('ignore')
 '''fixed random seed '''
 setup_seed(args.seed)
+
 
 def main(args):
     if args['dataset'] == 'jhu':
@@ -104,7 +105,6 @@ def main(args):
     if args['local_rank'] == 0:
         logger.info('best result={:.3f}\t start epoch={:.3f}'.format(args['best_pred'], args['start_epoch']))
 
-
     if args['local_rank'] == 0:
         logger.info('start training!')
 
@@ -152,7 +152,7 @@ def collate_wrapper(batch):
 
     for item in batch:
 
-        #if return_args.train_patch:
+        # if return_args.train_patch:
         fname.append(item[0])
 
         for i in range(0, len(item[1])):
@@ -208,7 +208,7 @@ def train(Pre_data, model, criterion, optimizer, epoch, scheduler, logger, write
     for i, (fname, img, targets) in enumerate(train_loader):
         img = img.cuda()
 
-        d6 = model(img)
+        d6 = model(img)  # has 3 keys: out.pred_logits, out.pred.points, out.aux_outputs
 
         loss_dict = criterion(d6, targets)
         weight_dict = criterion.weight_dict
@@ -230,13 +230,13 @@ def train(Pre_data, model, criterion, optimizer, epoch, scheduler, logger, write
     scheduler.step()
     if args['local_rank'] == 0:
         logger.info('Training Epoch:[{}/{}]\t loss={:.5f}\t lr={:.6f}\t epoch_time={:.3f}'.format(epoch,
-                                                                                                                args[
-                                                                                                                    'epochs'],
-                                                                                                                np.mean(
-                                                                                                                    loss_log),
-                                                                                                                args[
-                                                                                                                    'lr'],
-                                                                                                                epoch_time))
+                                                                                                  args[
+                                                                                                      'epochs'],
+                                                                                                  np.mean(
+                                                                                                      loss_log),
+                                                                                                  args[
+                                                                                                      'lr'],
+                                                                                                  epoch_time))
 
 
 def validate(Pre_data, model, criterion, epoch, logger, args):
@@ -268,7 +268,6 @@ def validate(Pre_data, model, criterion, epoch, logger, args):
             img = img.unsqueeze(0)
         if len(kpoint.shape) == 5:
             kpoint = kpoint.squeeze(0)
-
 
         with torch.no_grad():
             img = img.cuda()

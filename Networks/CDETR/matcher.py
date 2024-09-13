@@ -15,6 +15,8 @@ from scipy.optimize import linear_sum_assignment
 from torch import nn
 import numpy as np
 import scipy.spatial
+
+
 class HungarianMatcher(nn.Module):
     """This class computes an assignment between the targets and the predictions of the network
     For efficiency reasons, the targets don't include the no_object. Because of this, in general,
@@ -55,29 +57,29 @@ class HungarianMatcher(nn.Module):
         """
         bs, num_queries = outputs["pred_logits"].shape[:2]
 
-        out_prob = outputs["pred_logits"].flatten(0, 1).sigmoid()  # [batch_size * num_queries, num_classes]
+        out_prob = outputs["pred_logits"].flatten(0, 1).sigmoid()  # [batch_size * num_queries, 2]
 
+        out_point = outputs["pred_points"].flatten(0, 1)  # [batch_size * num_queries, 3]
+        tgt_point = torch.cat([v["points"] for v in targets])  # sum of each image nums in a batch: [num_target_points_1 + num_target_points_2 + ... , 3]
+        tgt_ids = torch.cat([v["labels"] for v in targets])  # used for computed classification cost
 
-        out_point = outputs["pred_points"].flatten(0, 1)
-        tgt_point = torch.cat([v["points"] for v in targets])
-        tgt_ids = torch.cat([v["labels"] for v in targets])
-
-        # Compute the classification cost.
+        # Compute the classification cost. Focal Loss, which helps to handle class imbalance
         alpha = 0.25
         gamma = 2.0
         neg_cost_class = (1 - alpha) * (out_prob ** gamma) * (-(1 - out_prob + 1e-8).log())
         pos_cost_class = alpha * ((1 - out_prob) ** gamma) * (-(out_prob + 1e-8).log())
         cost_class = pos_cost_class[:, tgt_ids] - neg_cost_class[:, tgt_ids]
 
-
-
-        cost_point = torch.cdist(out_point, tgt_point.cuda(), p=1)
+        # Compute Coordinate Cost
+        # calculate the L1 distance between predicted points and target points, return the coordinate cost for each prediction-target pair.
+        cost_point = torch.cdist(out_point, tgt_point.cuda(), p=1)  # due to including k-nearest distance, so this also calculate the KMO cost
 
         C = self.cost_class * cost_class + self.cost_point * cost_point
-        C = C.view(bs, num_queries, -1).cpu()
+        C = C.view(bs, num_queries, -1).cpu()  # c is cost matrix
 
         sizes = [len(v["points"]) for v in targets]
-        indices = [linear_sum_assignment(c[i]) for i, c in enumerate(C.split(sizes, -1))]
+        indices = [linear_sum_assignment(c[i]) for i, c in enumerate(C.split(sizes, -1))]  # best 1-to-1 matching, indices has length of batch_size, each element is a tuple of (index_i, index_j),
+        # index_i is the indices of the targets (in order), index_j is the indices of the corresponding selected selected predictions
         return [(torch.as_tensor(i, dtype=torch.int64), torch.as_tensor(j, dtype=torch.int64)) for i, j in indices]
 
 

@@ -47,6 +47,8 @@ class ConditionalDETR(nn.Module):
         self.class_embed = nn.Linear(hidden_dim, num_classes)
         self.point_embed = MLP(hidden_dim, hidden_dim, channel_point, 3)
         self.query_embed = nn.Embedding(num_queries, hidden_dim)
+        # backbone.num_channels is 2048 if resnet50 is chosen
+        # hidden_dim is 256, input_proj reduce the channel of feature map from encoder to 256 before passing to transformer-encoder
         self.input_proj = nn.Conv2d(backbone.num_channels, hidden_dim, kernel_size=1)
         self.backbone = backbone
         self.aux_loss = aux_loss
@@ -76,26 +78,27 @@ class ConditionalDETR(nn.Module):
                                 dictionnaries containing the two above keys for each decoder layer.
         """
         if isinstance(samples, (list, torch.Tensor)):
-            samples = nested_tensor_from_tensor_list(samples)
-        features, pos = self.backbone(samples)
-
+            samples = nested_tensor_from_tensor_list(samples)  # get mask, I don't know the meaning of mask
+        features, pos = self.backbone(samples)  # [16,2048,8,8], [16, 256, 8, 8]
+        # featur.tensor is input image, pos is position embedding
+        # feature.mask: A binary mask of shape [batch_size, H, W] indicating which pixels are valid (0 for valid and 1 for padded regions). This helps handle images of varying sizes.
         src, mask = features[-1].decompose()
-        assert mask is not None
-        hs, reference = self.transformer(self.input_proj(src), mask, self.query_embed.weight, pos[-1])
-
+        assert mask is not None  # tranformer takes feature map from backbone, and output hs and reference, the former include each output of decoder layer and the latter is the reference point with shape of [batch_size, num_queries, 2], the shape of both is guided by query_embed, that's why the shape has number of 700
+        hs, reference = self.transformer(self.input_proj(src), mask, self.query_embed.weight, pos[-1])  # src is flatten in transformer
+        # hs is user for predicting coordinates
         reference_before_sigmoid = inverse_sigmoid(reference)
         outputs_coords = []
-        for lvl in range(hs.shape[0]):
-            tmp = self.point_embed(hs[lvl])
-            tmp[..., :2] += reference_before_sigmoid
+        for lvl in range(hs.shape[0]):  # iterate through each decoder output
+            tmp = self.point_embed(hs[lvl])  # Note: point_embed include 3 Linear layers, the last layer has 3 neurons, which means the output shape is [batch_size, num_queries, 3]. it corresponds to FFN in the paper
+            tmp[..., :2] += reference_before_sigmoid  # add reference to the first two coordinates
             outputs_coord = tmp.sigmoid()
             outputs_coords.append(outputs_coord)
         outputs_coord = torch.stack(outputs_coords)
 
-        outputs_class = self.class_embed(hs)
-        out = {'pred_logits': outputs_class[-1], 'pred_points': outputs_coord[-1]}
+        outputs_class = self.class_embed(hs)  # class_embed only have 1 linear layer with 2 neurons, because crow counting task has two classes,
+        out = {'pred_logits': outputs_class[-1], 'pred_points': outputs_coord[-1]}  # the last output of decoder is final output, the remianing 5 outputs is not used
         if self.aux_loss:
-            out['aux_outputs'] = self._set_aux_loss(outputs_class, outputs_coord)
+            out['aux_outputs'] = self._set_aux_loss(outputs_class, outputs_coord)  # but remaining 5 decoder layer outputs are all used in auxloss
         return out
 
     @torch.jit.unused
@@ -149,7 +152,7 @@ class SetCriterion(nn.Module):
 
         target_classes_onehot = target_classes_onehot[:, :, :-1]
         loss_ce = sigmoid_focal_loss(src_logits, target_classes_onehot, num_points, alpha=self.focal_alpha, gamma=2) * \
-                  src_logits.shape[1]
+            src_logits.shape[1]
         losses = {'loss_ce': loss_ce}
 
         if log:
@@ -177,7 +180,7 @@ class SetCriterion(nn.Module):
            The target points are expected in format (center_x, center_y, w, h), normalized by the image size.
         """
         assert 'pred_points' in outputs
-        idx = self._get_src_permutation_idx(indices)
+        idx = self._get_src_permutation_idx(indices)  # compose of batch_idx and pred_idx
         src_points = outputs['pred_points'][idx]
         target_points = torch.cat([t['points'][i] for t, (_, i) in zip(targets, indices)], dim=0).cuda()
 
@@ -254,7 +257,7 @@ class SetCriterion(nn.Module):
         outputs_without_aux = {k: v for k, v in outputs.items() if k != 'aux_outputs'}
 
         # Retrieve the matching between the outputs of the last layer and the targets
-        indices = self.matcher(outputs_without_aux, targets)
+        indices = self.matcher(outputs_without_aux, targets)  # Note: indices has lenth of batch size, and each element has 2 list, containing the indices of the matched points from prediction and target respectively
 
         # Compute the average number of target points accross all nodes, for normalization purposes
         num_points = sum(len(t["labels"]) for t in targets)
@@ -362,7 +365,7 @@ def build(args):
         transformer,
         num_classes=num_classes,
         num_queries=args.num_queries,
-        channel_point = args.channel_point,
+        channel_point=args.channel_point,
         aux_loss=args.aux_loss,
     )
 
@@ -384,6 +387,8 @@ def build(args):
     losses = ['labels', 'points', 'cardinality']
     if args.masks:
         losses += ["masks"]
+
+    # criterion contains the matcher
     criterion = SetCriterion(num_classes, matcher=matcher, weight_dict=weight_dict,
                              focal_alpha=args.focal_alpha, losses=losses)
     criterion.to(device)

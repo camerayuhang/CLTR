@@ -7,8 +7,9 @@ import cv2
 import h5py
 import numpy as np
 import torch
-from mmcv.utils import get_logger
+# from mmcv.utils import get_logger
 from tqdm import tqdm
+from mmengine import MMLogger
 
 from image import load_data, load_data_test
 
@@ -79,7 +80,8 @@ def get_root_logger(log_file=None, log_level=logging.INFO):
     Returns:
         :obj:`logging.Logger`: The obtained logger
     """
-    logger = get_logger(name='CLTR', log_file=log_file, log_level=log_level)
+    # logger = get_logger(name='CLTR', log_file=log_file, log_level=log_level)
+    logger = MMLogger.get_instance(name='CLTR', log_file=log_file, log_level=log_level)
 
     return logger
 
@@ -105,5 +107,3 @@ def pre_data_test(train_list, args, train):
         #     break
 
     return data_keys
-
-

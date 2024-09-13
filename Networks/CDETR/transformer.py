@@ -83,15 +83,15 @@ class Transformer(nn.Module):
     def forward(self, src, mask, query_embed, pos_embed):
         # flatten NxCxHxW to HWxNxC
         bs, c, h, w = src.shape
-        src = src.flatten(2).permute(2, 0, 1)
-        pos_embed = pos_embed.flatten(2).permute(2, 0, 1)
-        query_embed = query_embed.unsqueeze(1).repeat(1, bs, 1)
-        mask = mask.flatten(1)
+        src = src.flatten(2).permute(2, 0, 1)  # feature map output from backbone: [HW, N, 8C]->1x1 conv: [HW, N, C]
+        pos_embed = pos_embed.flatten(2).permute(2, 0, 1)  # [HW, N, C]
+        query_embed = query_embed.unsqueeze(1).repeat(1, bs, 1)  # [700, N, C]
+        mask = mask.flatten(1)  # [B, HW]
 
         tgt = torch.zeros_like(query_embed)
-        memory = self.encoder(src, src_key_padding_mask=mask, pos=pos_embed)
-        hs, references = self.decoder(tgt, memory, memory_key_padding_mask=mask,
-                                      pos=pos_embed, query_pos=query_embed)
+        memory = self.encoder(src, src_key_padding_mask=mask, pos=pos_embed)  # [HW, N, C], encoder do the change the shape of src
+        hs, references = self.decoder(tgt, memory, memory_key_padding_mask=mask,  # decoder takes query_embed, which is used for predicting coordinates of point, the num of point is its shape
+                                      pos=pos_embed, query_pos=query_embed)  # decoder takes the memory from encoder, and the output hs has each output of decoder layer, references : [HW, N, 2], shape of both is guided by query_embed, so why the shape have number of 700
         return hs, references
 
 
@@ -173,8 +173,8 @@ class TransformerDecoder(nn.Module):
                 intermediate.pop()
                 intermediate.append(output)
 
-        if self.return_intermediate:
-            return [torch.stack(intermediate).transpose(1, 2), reference_points]
+        if self.return_intermediate:  # intermediate: [num_layers, num_queries, batch_size, d_model]
+            return [torch.stack(intermediate).transpose(1, 2), reference_points]  # reference_points: [batch_size, num_queries, 2]
 
         return output.unsqueeze(0)
 
@@ -325,7 +325,7 @@ class TransformerDecoderLayer(nn.Module):
 
         k_pos = self.ca_kpos_proj(pos)
 
-        # For the first decoder layer, we concatenate the positional embedding predicted from 
+        # For the first decoder layer, we concatenate the positional embedding predicted from
         # the object query (the positional embedding) into the original query (key) in DETR.
         if is_first:
             q_pos = self.ca_qpos_proj(query_pos)

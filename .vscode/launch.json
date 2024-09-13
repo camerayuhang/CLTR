@@ -1,0 +1,54 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python Debugger: Train Distributed",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/train_distributed.py",
+      "console": "integratedTerminal",
+      "args": [
+        "--gpu_id",
+        "0",
+        "--gray_aug",
+        "--gray_p",
+        "0.1",
+        "--scale_aug",
+        "--scale_type",
+        "1",
+        "--scale_p",
+        "0.3",
+        "--epochs",
+        "1500",
+        "--lr_step",
+        "1200",
+        "--lr",
+        "1e-4",
+        "--batch_size",
+        "16",
+        "--num_patch",
+        "1",
+        "--threshold",
+        "0.35",
+        "--test_per_epoch",
+        "20",
+        "--num_queries",
+        "700",
+        "--dataset",
+        "nwpu",
+        "--crop_size",
+        "256",
+        "--pre",
+        "None",
+        "--test_patch",
+        "--save"
+      ]
+      // "env": {
+      //   "MASTER_PORT": "8218"
+      // }
+    }
+  ]
+}

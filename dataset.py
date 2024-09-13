@@ -39,18 +39,18 @@ class listDataset(Dataset):
         fname = os.path.basename(img_path)
         img, kpoint = load_data(img_path, self.args, self.train)
 
-        while min(kpoint.shape[0], kpoint.shape[1]) < self.args['crop_size']  and self.train == True:
-            img_path = self.lines[random.randint(1, self.nSamples-1)]
+        while min(kpoint.shape[0], kpoint.shape[1]) < self.args['crop_size'] and self.train == True:
+            img_path = self.lines[random.randint(1, self.nSamples - 1)]
             fname = os.path.basename(img_path)
             img, kpoint = load_data(img_path, self.args, self.train)
 
-        '''data augmention'''
+        '''data augmention'''  # ramdom scale
         if self.train == True:
             if random.random() > 0.5:
                 img = img.transpose(Image.FLIP_LEFT_RIGHT)
                 kpoint = np.fliplr(kpoint)
 
-            if self.args['scale_aug'] == True and random.random() > (1 - self.args['scale_p']): # random scale
+            if self.args['scale_aug'] == True and random.random() > (1 - self.args['scale_p']):  # random scale
                 if self.args['scale_type'] == 0:
                     self.rate = random.choice([0.8, 0.9, 1.1, 1.2])
                 elif self.args['scale_type'] == 1:
@@ -71,10 +71,9 @@ class listDataset(Dataset):
         img = img.copy()
 
         if self.transform is not None:
-            img = self.transform(img)
+            img = self.transform(img)  # normalize first then crop
 
-
-        if self.train == True:
+        if self.train == True:  # the largest side of training image is 2048
             count_none = 0
             imgs = []
             targets = []
@@ -82,7 +81,7 @@ class listDataset(Dataset):
                 while True:
                     target = {}
                     if count_none > 100:
-                        img_path = self.lines[random.randint(1, self.nSamples-1)]
+                        img_path = self.lines[random.randint(1, self.nSamples - 1)]
                         fname = os.path.basename(img_path)
                         img, kpoint = load_data(img_path, self.args, self.train)
 
@@ -103,7 +102,7 @@ class listDataset(Dataset):
                     '''crop image'''
                     sub_img = img[:, crop_size_x: crop_size_x + width, crop_size_y:crop_size_y + height]
                     '''crop kpoint'''
-                    crop_size_x = int(crop_size_x / self.rate)
+                    crop_size_x = int(crop_size_x / self.rate)  # restore to original crop_size_x
                     crop_size_y = int(crop_size_y / self.rate)
                     width = int(width / self.rate)
                     height = int(height / self.rate)
@@ -112,12 +111,12 @@ class listDataset(Dataset):
                     '''num_points and points'''
                     num_points = int(np.sum(sub_kpoint))
                     '''points'''
-                    gt_points = np.nonzero(torch.from_numpy(sub_kpoint))
+                    gt_points = np.nonzero(torch.from_numpy(sub_kpoint))  # sub_kpoint is dot_map, while gt_points is the coordinates of points
 
                     distances = self.caculate_knn_distance(gt_points, num_points)
-                    points = torch.cat([gt_points, distances], dim=1)
+                    points = torch.cat([gt_points, distances], dim=1)  # coordinates + distances
 
-                    #points = gt_points
+                    # points = gt_points
 
                     if num_points > self.args['min_num'] and num_points < self.args['num_queries']:
                         break
@@ -125,18 +124,19 @@ class listDataset(Dataset):
                     count_none += 1
 
                 target['labels'] = torch.ones([1, num_points]).squeeze(0).type(torch.LongTensor)
-                target['points_macher'] = torch.true_divide(points, width).type(torch.FloatTensor)
-                target['points'] = torch.true_divide(points[:, 0:self.args['channel_point']], width).type(torch.FloatTensor)
+                target['points_macher'] = torch.true_divide(points, width).type(torch.FloatTensor)  # normalize the points to [0, 1]
+                target['points'] = torch.true_divide(points[:, 0:self.args['channel_point']], width).type(torch.FloatTensor)  # target['points_macher'] has same value as target['points']
 
                 imgs.append(sub_img)
                 targets.append(target)
-
+            # file name, input image cropped to 256, target['labels'] has shape of [1, num_points], with each element being 1
+            # target['points_macher'] and target['points'] is coordinates + distance of points, with shape of [num_points, 3]
             return fname, imgs, targets
 
-        else:
+        else:  # the size of val image is orginal size
 
             kpoint = torch.from_numpy(kpoint).cuda()
-
+            # calculate the requried padding size
             padding_h = img.shape[1] % self.args['crop_size']
             padding_w = img.shape[2] % self.args['crop_size']
 
@@ -147,7 +147,7 @@ class listDataset(Dataset):
 
             '''for padding'''
             pd = (padding_w, 0, padding_h, 0)
-            img = F.pad(img, pd, 'constant')
+            img = F.pad(img, pd, 'constant')  # ensure the shape of image can be divided by crop_size without remainder
             kpoint = F.pad(kpoint, pd, 'constant').unsqueeze(0)
 
             width, height = img.shape[2], img.shape[1]
@@ -168,7 +168,6 @@ class listDataset(Dataset):
             targets = []
             patch_info = [num_h, num_w, height, width, self.args['crop_size'], padding_w, padding_h]
             return fname, img_return, kpoint_return, targets, patch_info
-
 
     def caculate_knn_distance(self, gt_points, num_point):
 
@@ -202,5 +201,3 @@ class listDataset(Dataset):
             distances = torch.from_numpy(distances).unsqueeze(1)
 
         return distances
-
-
