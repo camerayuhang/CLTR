@@ -275,15 +275,15 @@ def validate(Pre_data, model, criterion, epoch, logger, args):
 
         out_logits, out_point = outputs['pred_logits'], outputs['pred_points']
         prob = out_logits.sigmoid()
-        prob = prob.view(1, -1, 2)
-        out_logits = out_logits.view(1, -1, 2)
+        prob = prob.view(1, -1, 2)  # [1,patches * num_queries,2]
+        out_logits = out_logits.view(1, -1, 2)  # [1,patches * num_queries,2]
         topk_values, topk_indexes = torch.topk(prob.view(out_logits.shape[0], -1),
                                                kpoint.shape[0] * args['num_queries'], dim=1)
         count = 0
         gt_count = torch.sum(kpoint).item()
         for k in range(topk_values.shape[0]):
             sub_count = topk_values[k, :]
-            sub_count[sub_count < args['threshold']] = 0
+            sub_count[sub_count < args['threshold']] = 0  # use 0.35 to judge whether the predicted one is people
             sub_count[sub_count > 0] = 1
             sub_count = torch.sum(sub_count).item()
             count += sub_count
