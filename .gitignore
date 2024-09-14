@@ -1,2 +1,4 @@
 /datasets/*
 /npydata/*
+/save_file/*
+/**/__pycache__

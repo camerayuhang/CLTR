@@ -65,12 +65,12 @@ for i in range(len(val_list)):
     if img.shape[1] >= img.shape[0] and img.shape[1] >= 4096:
         rate1 = 4096.0 / img.shape[1]
         img = cv2.resize(img, (0, 0), fx=rate1, fy=rate1, interpolation=cv2.INTER_CUBIC)
-        Img_data_pil = Img_data_pil.resize((img.shape[1], img.shape[0]), Image.ANTIALIAS)
+        Img_data_pil = Img_data_pil.resize((img.shape[1], img.shape[0]), Image.Resampling.LANCZOS)
 
     elif img.shape[0] >= img.shape[1] and img.shape[0] >= 4096:
         rate1 = 4096.0 / img.shape[0]
         img = cv2.resize(img, (0, 0), fx=rate1, fy=rate1, interpolation=cv2.INTER_CUBIC)
-        Img_data_pil = Img_data_pil.resize((img.shape[1], img.shape[0]), Image.ANTIALIAS)
+        Img_data_pil = Img_data_pil.resize((img.shape[1], img.shape[0]), Image.Resampling.LANCZOS)
 
     rate = img.shape[0] / image_s.shape[0]
 

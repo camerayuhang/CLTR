@@ -66,7 +66,7 @@ for img_path in img_paths:
     elif img.shape[0] >= img.shape[1] and img.shape[0] >= 2048:
         rate1 = 2048.0 / img.shape[0]
     img = cv2.resize(img, (0, 0), fx=rate1, fy=rate1, interpolation=cv2.INTER_CUBIC)
-    Img_data_pil = Img_data_pil.resize((img.shape[1], img.shape[0]) ,Image.ANTIALIAS)
+    Img_data_pil = Img_data_pil.resize((img.shape[1], img.shape[0]) ,Image.Resampling.LANCZOS)
 
     min_shape = 512.0
     if img.shape[1] <= img.shape[0] and img.shape[1] <= min_shape:
@@ -74,7 +74,7 @@ for img_path in img_paths:
     elif img.shape[0] <= img.shape[1] and img.shape[0] <= min_shape:
         rate2 = min_shape / img.shape[0]
     img = cv2.resize(img, (0, 0), fx=rate2, fy=rate2, interpolation=cv2.INTER_CUBIC)
-    Img_data_pil = Img_data_pil.resize((img.shape[1], img.shape[0]), Image.ANTIALIAS)
+    Img_data_pil = Img_data_pil.resize((img.shape[1], img.shape[0]), Image.Resampling.LANCZOS)
 
     rate = rate1 * rate2
 
