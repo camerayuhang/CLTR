@@ -14,7 +14,7 @@ import math
 import dataset
 from torchvision import transforms
 import torch.nn as nn
-
+from tqdm import tqdm
 import os
 import warnings
 
@@ -205,7 +205,7 @@ def train(Pre_data, model, criterion, optimizer, epoch, scheduler, logger, write
     model.train()
     loss_log = []
 
-    for i, (fname, img, targets) in enumerate(train_loader):
+    for i, (fname, img, targets) in enumerate(tqdm(train_loader)):
         img = img.cuda()
 
         d6 = model(img)  # has 3 keys: out.pred_logits, out.pred.points, out.aux_outputs
