@@ -60,4 +60,4 @@ CNN backbone + Transformer Encoder + Transformer Decoder + Point Regression Head
 
 ## Validation
 
-验证的时候，bs为1，但是每一张图片会padding后在crop成很多张进行验证，因为输入图片的大小只能是crop大小
+验证的时候，bs为1，但是每一张图片会padding后在crop成很多张进行验证，因为输入图片的大小只能是crop大小。
