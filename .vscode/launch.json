@@ -28,7 +28,7 @@
         "--lr",
         "1e-4",
         "--batch_size",
-        "16",
+        "4",
         "--num_patch",
         "1",
         "--threshold",
@@ -49,6 +49,49 @@
       // "env": {
       //   "MASTER_PORT": "8218"
       // }
+    },
+    {
+      "name": "Python Debugger: Train Distributed (ARIS)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/train_distributed.py",
+      "console": "integratedTerminal",
+      "args": [
+        "--gpu_id",
+        "0",
+        "--gray_aug",
+        "--gray_p",
+        "0.1",
+        "--scale_aug",
+        "--scale_type",
+        "1",
+        "--scale_p",
+        "0.3",
+        "--epochs",
+        "1500",
+        "--lr_step",
+        "1200",
+        "--lr",
+        "1e-4",
+        "--batch_size",
+        "8",
+        "--num_patch",
+        "1",
+        "--threshold",
+        "0.35",
+        "--test_per_epoch",
+        "5",
+        "--num_queries",
+        "500",
+        "--dataset",
+        "aris",
+        "--crop_size",
+        "320",
+        "--pre",
+        "None",
+        "--test_patch",
+        "--save"
+      ]
     }
   ]
 }

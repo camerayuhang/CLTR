@@ -22,7 +22,7 @@ from config import return_args, args
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
 
-if args.backbone == 'resnet50' or args.backbone == 'resnet101':
+if args.backbone == 'resnet50' or args.backbone == 'resnet101' or 'resnet18':
     from Networks.CDETR import build_model
 
 warnings.filterwarnings('ignore')
@@ -37,6 +37,9 @@ def main(args):
     elif args['dataset'] == 'nwpu':
         train_file = './npydata/nwpu_train.npy'
         test_file = './npydata/nwpu_val.npy'
+    elif args['dataset'] == 'aris':
+        train_file = './npydata/aris_train.npy'
+        test_file = './npydata/aris_test.npy'
 
     with open(train_file, 'rb') as outfile:
         train_data = np.load(outfile).tolist()
@@ -121,6 +124,8 @@ def main(args):
             writer.add_scalar('Metrcis/MAE', pred_mae, eval_epoch)
             writer.add_scalar('Metrcis/MSE', pred_mse, eval_epoch)
 
+            eval_epoch += args['test_per_epoch']
+
             # save_result
             if args['save']:
 
@@ -190,7 +195,7 @@ def train(Pre_data, model, criterion, optimizer, epoch, scheduler, logger, write
         datasampler.set_epoch(epoch)
     else:
         datasampler = None
-
+    # train_loader is created each time when train() is called, but I think it doesn't matter
     train_loader = torch.utils.data.DataLoader(
         train_data,
         batch_size=args['batch_size'],
@@ -294,7 +299,6 @@ def validate(Pre_data, model, criterion, epoch, logger, args):
     mae = mae / len(test_loader)
     mse = math.sqrt(mse / len(test_loader))
 
-    print('mae', mae, 'mse', mse)
     return mae, mse, visi
 
 

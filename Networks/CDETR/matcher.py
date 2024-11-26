@@ -79,7 +79,7 @@ class HungarianMatcher(nn.Module):
 
         sizes = [len(v["points"]) for v in targets]
         indices = [linear_sum_assignment(c[i]) for i, c in enumerate(C.split(sizes, -1))]  # best 1-to-1 matching, indices has length of batch_size, each element is a tuple of (index_i, index_j),
-        # index_i is the indices of the targets (in order), index_j is the indices of the corresponding selected selected predictions
+        # index_j is the indices of the targets (in order), index_i is the indices of the corresponding selected selected predictions
         return [(torch.as_tensor(i, dtype=torch.int64), torch.as_tensor(j, dtype=torch.int64)) for i, j in indices]
 
 

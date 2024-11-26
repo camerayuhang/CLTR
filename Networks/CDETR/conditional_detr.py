@@ -78,7 +78,7 @@ class ConditionalDETR(nn.Module):
                                 dictionnaries containing the two above keys for each decoder layer.
         """
         if isinstance(samples, (list, torch.Tensor)):
-            samples = nested_tensor_from_tensor_list(samples)  # get mask, I don't know the meaning of mask
+            samples = nested_tensor_from_tensor_list(samples)  # samples contain 2 elements, the first one is padded tensor, the second one is mask ,which indicates the real image data region; A True value in the mask represents padding (invalid regions of the tensor).
         features, pos = self.backbone(samples)  # [16,2048,8,8], [16, 256, 8, 8]
         # featur.tensor is input image, pos is position embedding
         # feature.mask: A binary mask of shape [batch_size, H, W] indicating which pixels are valid (0 for valid and 1 for padded regions). This helps handle images of varying sizes.
@@ -98,7 +98,7 @@ class ConditionalDETR(nn.Module):
         outputs_class = self.class_embed(hs)  # class_embed only have 1 linear layer with 2 neurons, because crow counting task has two classes,
         out = {'pred_logits': outputs_class[-1], 'pred_points': outputs_coord[-1]}  # the last output of decoder is final output, the remianing 5 outputs is not used
         if self.aux_loss:
-            out['aux_outputs'] = self._set_aux_loss(outputs_class, outputs_coord)  # but remaining 5 decoder layer outputs are all used in auxloss
+            out['aux_outputs'] = self._set_aux_loss(outputs_class, outputs_coord)  # the remaining 5 decoder layer outputs are all used in auxloss
         return out
 
     @torch.jit.unused

@@ -46,11 +46,11 @@ class listDataset(Dataset):
 
         '''data augmention'''  # ramdom scale
         if self.train == True:
-            if random.random() > 0.5:
+            if random.random() > 0.5:  # flip the image and dot map
                 img = img.transpose(Image.FLIP_LEFT_RIGHT)
                 kpoint = np.fliplr(kpoint)
 
-            if self.args['scale_aug'] == True and random.random() > (1 - self.args['scale_p']):  # random scale
+            if self.args['scale_aug'] == True and random.random() > (1 - self.args['scale_p']):  # random scale the image
                 if self.args['scale_type'] == 0:
                     self.rate = random.choice([0.8, 0.9, 1.1, 1.2])
                 elif self.args['scale_type'] == 1:
@@ -65,13 +65,13 @@ class listDataset(Dataset):
                 else:
                     self.rate = 1
             else:
-                self.rate = random.uniform(1.0, 1.0)
+                self.rate = random.uniform(1.0, 1.0)  # the only possible value is 1
 
         kpoint = kpoint.copy()
         img = img.copy()
 
         if self.transform is not None:
-            img = self.transform(img)  # normalize first then crop
+            img = self.transform(img)  # augmentation contains grayscale and normalization
 
         if self.train == True:  # the largest side of training image is 2048
             count_none = 0
@@ -124,7 +124,7 @@ class listDataset(Dataset):
                     count_none += 1
 
                 target['labels'] = torch.ones([1, num_points]).squeeze(0).type(torch.LongTensor)
-                target['points_macher'] = torch.true_divide(points, width).type(torch.FloatTensor)  # normalize the points to [0, 1]
+                target['points_macher'] = torch.true_divide(points, width).type(torch.FloatTensor)  # scale size of gt_point to 256 is not necessary, because it will be gtnormalized to [0, 1]
                 target['points'] = torch.true_divide(points[:, 0:self.args['channel_point']], width).type(torch.FloatTensor)  # target['points_macher'] has same value as target['points']
 
                 imgs.append(sub_img)

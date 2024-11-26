@@ -9,9 +9,18 @@ import glob
 import argparse
 import cv2
 
+# Get the directory of the current Python file
+current_folder = os.path.dirname(os.path.abspath(__file__))
+
+# Set this directory as the working directory
+os.chdir(current_folder)
+
+# Print the new working directory to confirm
+print("Working directory set to:", os.getcwd())
+
 # get_ipython().magic(u'matplotlib inline')
 parser = argparse.ArgumentParser(description='CLTR')
-parser.add_argument('--data_path', type=str, default='../../datasets/NWPU_CLTR',
+parser.add_argument('--data_path', type=str, default='../datasets/NWPU_CLTR',
                     help='the data path of jhu')
 
 args = parser.parse_args()
