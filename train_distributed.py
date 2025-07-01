@@ -1,4 +1,5 @@
 from __future__ import division
+from ptflops import get_model_complexity_info
 from torch.utils.tensorboard import SummaryWriter  # add tensoorboard
 import numpy as np
 import torch
@@ -76,6 +77,7 @@ def main(args):
     num_params = 0
     for param in model.parameters():
         num_params += param.numel()
+
     print("model params:", num_params / 1e6)
     logger.info("model params: = {:.3f}\t".format(num_params / 1e6))
 
